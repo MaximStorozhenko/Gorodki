@@ -55,6 +55,7 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\Bat.cs" />
     <Compile Include="Assets\Scripts\CameraMove.cs" />
+    <Compile Include="Assets\Scripts\Clock.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
