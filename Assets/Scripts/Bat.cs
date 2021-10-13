@@ -127,12 +127,13 @@ public class Bat : MonoBehaviour
                     this.transform.rotation = start_rotation;
 
                     GameObject figure_old = GameObject.FindGameObjectWithTag("figure" + (game_number - 1).ToString());
-                    GameObject figure_new = GameObject.FindGameObjectWithTag("figure" + game_number.ToString());
-
                     figure_old.SetActive(false);
-                    //figure_new.SetActive(true);
 
-                    figure_new.transform.position = figure_position;
+                    if (game_number < 2)  // Изменить по количеству фигур 
+                    {
+                        GameObject figure_new = GameObject.FindGameObjectWithTag("figure" + game_number.ToString());
+                        figure_new.transform.position = figure_position;
+                    }
                 }
 
                 count_left = 5 - count_removed;
@@ -187,13 +188,8 @@ public class Bat : MonoBehaviour
                 bar.SetActive(false);
                 count++;
             }
-
-            //Debug.Log(bar.name +
-            //    (gorod.bounds.Contains(bar.transform.TransformPoint(Vector3.zero)) ? " + " : " - "));
         }
 
         count_removed += count;
-
-        //Debug.Log(gorod.bounds.size);
     }
 }
