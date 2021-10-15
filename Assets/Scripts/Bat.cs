@@ -40,6 +40,10 @@ public class Bat : MonoBehaviour
 
     private Vector3 figure_position;
 
+    private GameObject main_camera;
+    private Vector3 camera_start_pos;
+    private Vector3 camera_second_pos;
+
     void Start()
     {
         game_number = 1;
@@ -73,6 +77,10 @@ public class Bat : MonoBehaviour
         gorod = GameObject.Find("Pole").GetComponent<Collider>();
 
         figure_position = GameObject.Find("FigurePosition").transform.position;
+
+        main_camera = GameObject.Find("Main Camera");
+        camera_start_pos = main_camera.transform.position;
+        camera_second_pos = new Vector3(stand_pos_2.x + 2.7f, camera_start_pos.y, stand_pos_2.z - 2.7f);
     }
 
     void Update()
@@ -101,6 +109,7 @@ public class Bat : MonoBehaviour
                         start_pos.y,
                         stand_pos_2.z);
                     this.transform.rotation = start_rotation;
+                    main_camera.transform.position = camera_second_pos;
                 }
                 else
                 {
@@ -110,9 +119,10 @@ public class Bat : MonoBehaviour
                         stand_pos_1.z);
                     this.transform.position = start_pos;
                     this.transform.rotation = start_rotation;
+                    main_camera.transform.position = camera_start_pos;
                 }
 
-                if(count_removed == 5)
+                if(count_removed == 5) 
                 {
                     game_number++;
                     count_turn = 0;
@@ -126,10 +136,12 @@ public class Bat : MonoBehaviour
                     this.transform.position = start_pos;
                     this.transform.rotation = start_rotation;
 
+                    main_camera.transform.position = camera_start_pos;
+
                     GameObject figure_old = GameObject.FindGameObjectWithTag("figure" + (game_number - 1).ToString());
                     figure_old.SetActive(false);
 
-                    if (game_number < 2)  // Изменить по количеству фигур 
+                    if (game_number <= 2)  // Изменить по количеству фигур 
                     {
                         GameObject figure_new = GameObject.FindGameObjectWithTag("figure" + game_number.ToString());
                         figure_new.transform.position = figure_position;
