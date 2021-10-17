@@ -57,6 +57,7 @@
     <Compile Include="Assets\Scripts\CameraMove.cs" />
     <Compile Include="Assets\Scripts\Clock.cs" />
     <Compile Include="Assets\Scripts\Menu.cs" />
+    <Compile Include="Assets\Scripts\Pause.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

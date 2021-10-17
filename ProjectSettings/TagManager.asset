@@ -9,6 +9,7 @@ TagManager:
   - figure2
   - bar1
   - bar2
+  - figure
   layers:
   - Default
   - TransparentFX

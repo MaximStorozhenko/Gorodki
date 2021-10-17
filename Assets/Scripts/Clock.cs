@@ -5,19 +5,26 @@ using UnityEngine.UI;
 
 public class Clock : MonoBehaviour
 {
-    private float time;
+    public static float CountTime { get; private set; }
     private Text Timer;
 
     void Start()
     {
-        time = 0;
+        CountTime = 0;
         Timer = GetComponent<Text>();
+    }
+
+    public void ClockReset()
+    {
+        CountTime = 0;
     }
 
     void Update()
     {
-        time += Time.deltaTime;
-        int t = (int)time; ;
+        if (Pause.is_paused) return;
+
+        CountTime += Time.deltaTime;
+        int t = (int)CountTime; ;
 
         int sec = t % 60;
         int min = t / 60;

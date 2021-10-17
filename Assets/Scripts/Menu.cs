@@ -11,6 +11,8 @@ public class Menu : MonoBehaviour
     public void StartButtonClick()
     {
         SceneManager.LoadScene("SampleScene");
+        Pause.is_paused = false;
+        Pause.pause_mode = PauseMode.Game;
     }
 
     public void RulesButtonClick()
@@ -37,6 +39,8 @@ public class Menu : MonoBehaviour
 
         View.SetActive(false);
         ReturnButton.SetActive(false);
+
+        Pause.is_paused = true;
     }
 
     // Update is called once per frame

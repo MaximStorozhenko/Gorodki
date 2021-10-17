@@ -1,5 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Xml.Serialization;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -21,17 +22,22 @@ public class Bat : MonoBehaviour
     private Slider RotationSlider;
     private Vector3 rotation_direction;
 
-    private const float MIN_FORCE = 1200f;
-    private const float MAX_FORCE = 3000f;
-    private const float MIN_TORQUE = 50f;
-    private const float MAX_TORQUE = 90000f;
+    private const float MIN_FORCE  = 1200f;  // Сила броска
+    private const float MAX_FORCE  = 3000f;  // биты
+    private const float MIN_TORQUE = -1e3f;  // Вращательный
+    private const float MAX_TORQUE =  1e3f;  // момент биты
+
+    private const string GAMES_HISTORY_FILE = "history.xml";
 
     private Collider gorod;  // Коллайдер объекта "город"
 
-    private int game_number;
-    private int count_removed;
-    private int count_left;
-    private int count_turn;
+    private GameObject[] figures;
+
+    private int game_number;    // номер игры
+    private int count_removed;  // кол-во выбитых городков
+    private int count_left;     // кол-во оставшихся
+    private int count_turn;     // кол-во бросков в каждой игре
+    private int throws;         // кол-во бросков (за всю игру)
 
     private Text game_text;
     private Text count_removed_text;
@@ -44,12 +50,36 @@ public class Bat : MonoBehaviour
     private Vector3 camera_start_pos;
     private Vector3 camera_second_pos;
 
+    private List<GameResult> game_history;
+
+    private List<ScoreResult> score_results;
+
+    private Clock Clock;
+
+    private GameObject pause_canvas;
+    private GameObject score_canvas;
+
+    private Text score_list;
+
     void Start()
     {
+        LoadHistory();
+        score_results = new List<ScoreResult>();
+        score_list = GameObject.Find("Scores").GetComponent<Text>();
+
+        Clock = GameObject.Find("Clock").GetComponent<Clock>();
+
+        pause_canvas = GameObject.Find("Pause");
+        pause_canvas.SetActive(false);
+
+        score_canvas = GameObject.Find("Score");
+        score_canvas.SetActive(false);
+
         game_number = 1;
         count_removed = 0;
         count_left = 5;
         count_turn = 0;
+        throws = 0;
 
         game_text = GameObject.Find("GameText").GetComponent<Text>();
         count_removed_text = GameObject.Find("CountRemovedText").GetComponent<Text>();
@@ -76,6 +106,8 @@ public class Bat : MonoBehaviour
 
         gorod = GameObject.Find("Pole").GetComponent<Collider>();
 
+        figures = GameObject.FindGameObjectsWithTag("figure");
+
         figure_position = GameObject.Find("FigurePosition").transform.position;
 
         main_camera = GameObject.Find("Main Camera");
@@ -85,6 +117,39 @@ public class Bat : MonoBehaviour
 
     void Update()
     {
+        #region управление паузой
+
+        if (Pause.is_paused)
+        {
+            ForceSlider.enabled = false;
+            RotationSlider.enabled = false;
+            return;
+        }
+        else
+        {
+            ForceSlider.enabled = true;
+            RotationSlider.enabled = true;
+        }
+
+        if(Pause.pause_mode == PauseMode.Game)
+        {
+            if(Input.GetKeyDown(KeyCode.Escape) && !is_bat_moving)
+            {
+                pause_canvas.SetActive(true);
+                Pause.is_paused = true;
+                Pause.pause_mode = PauseMode.Pause;
+            }
+
+            if(Input.GetKeyDown(KeyCode.H) && !is_bat_moving)
+            {
+                score_canvas.SetActive(true);
+                Pause.is_paused = true;
+                Pause.pause_mode = PauseMode.ScorePause;
+            }
+        }
+
+        #endregion
+
         #region Полет и остановка биты
         if (is_bat_moving)
         {
@@ -124,10 +189,13 @@ public class Bat : MonoBehaviour
 
                 if(count_removed == 5) 
                 {
+                    ScoreHistory();
+
                     game_number++;
                     count_turn = 0;
                     count_removed = 0;
                     count_left = 5;
+                    Clock.ClockReset();
 
                     stand.transform.position = new Vector3(
                         stand_pos_1.x,
@@ -138,24 +206,40 @@ public class Bat : MonoBehaviour
 
                     main_camera.transform.position = camera_start_pos;
 
-                    GameObject figure_old = GameObject.FindGameObjectWithTag("figure" + (game_number - 1).ToString());
-                    figure_old.SetActive(false);
-
-                    if (game_number <= 2)  // Изменить по количеству фигур 
+                    foreach(GameObject fig in figures)
                     {
-                        GameObject figure_new = GameObject.FindGameObjectWithTag("figure" + game_number.ToString());
-                        figure_new.transform.position = figure_position;
+                        if (fig.name == "Figure" + (game_number - 1).ToString())
+                            fig.SetActive(false);
+
+                        if (game_number <= figures.Length && fig.name == "Figure" + game_number.ToString())
+                        {
+                            fig.transform.position = figure_position;
+                        }
                     }
                 }
 
                 count_left = 5 - count_removed;
-
-                game_text.text = "Игра №" + game_number;
+                if(game_number <= figures.Length)
+                    game_text.text = "Игра №" + game_number;
                 count_removed_text.text = "Выбито: " + count_removed;
                 count_left_text.text = "Осталось: " + count_left;
                 count_turn_text.text = "Ударов: " + count_turn;
             }
         }
+        #endregion
+
+        ScoreResult.Print(score_results, score_list);
+
+        #region GameOver
+
+        if (game_number > figures.Length)
+        {
+            Debug.Log("GameOver");
+            score_canvas.SetActive(true);
+            Pause.is_paused = true;
+            Pause.pause_mode = PauseMode.ScorePause;
+        }
+
         #endregion
 
         #region Бросок биты
@@ -170,10 +254,19 @@ public class Bat : MonoBehaviour
 
             is_bat_moving = true;
             count_turn++;
+            throws++;
         }
         #endregion
 
+        #region Features
 
+        if(Input.GetKeyDown(KeyCode.S))
+        {
+            SaveHistory();
+            Debug.Log("Saved");
+        }
+
+        #endregion
     }
 
     private void RemoveBars()
@@ -203,5 +296,99 @@ public class Bat : MonoBehaviour
         }
 
         count_removed += count;
+    }
+
+    private void LoadHistory()
+    {
+        if(File.Exists(GAMES_HISTORY_FILE))
+        {
+            using(StreamReader reader = new StreamReader(GAMES_HISTORY_FILE))
+            {
+                XmlSerializer serializer = new XmlSerializer(typeof(List<GameResult>));
+                game_history = (List<GameResult>)serializer.Deserialize(reader);
+                Debug.Log("Desialized: " + game_history.Count);
+            }
+        }
+    }
+
+    private void SaveHistory()
+    {
+        if(game_history == null)
+        {
+            game_history = new List<GameResult>();
+        }
+
+        game_history.Add(new GameResult
+        {
+            WinGames = game_number - 1,
+            Throws = throws,
+            Time = 0
+        });
+
+        using(StreamWriter writer = new StreamWriter(GAMES_HISTORY_FILE))
+        {
+            XmlSerializer serializer = new XmlSerializer(game_history.GetType());
+            serializer.Serialize(writer, game_history);
+        }
+    }
+
+    private void ScoreHistory()
+    {
+        score_results.Add(new ScoreResult
+        {
+            Game = game_number,
+            Throws = count_turn,
+            Time = Clock.CountTime
+        });
+    }
+}
+
+public class GameResult
+{
+    public string Name { get; set; }   // Имя играющего
+
+    public int WinGames { get; set; }  // сбито фигур
+
+    public int Throws { get; set; }    // совершенно бросков за всю игру
+
+    public float Time { get; set; }    // затраченно времени
+}
+
+public class ScoreResult
+{
+    public int Game { get; set; }    // номер игры
+
+    public int Throws { get; set; }  // совершенно бросков
+
+    public float Time { get; set; }  // затраченно времени
+
+    public static void Print(List<ScoreResult> list, Text score_list)
+    {
+        //score_list.text = "Text";
+        score_list.text = "";
+        int num = 1;
+
+        foreach (ScoreResult res in list)
+        {
+            score_list.text += (num < 10 ? "  " + num : num.ToString()) +
+                ".                    " + res.Throws + "                    " + res.GetTime() + "\n\n";
+            num++;
+        }
+
+        for(int i = num; i <= 15; i++)
+        {
+            score_list.text += (i < 10 ? "  " + i : i.ToString()) +
+                ".                    -                    - \n\n";
+        }
+    }
+
+    private string GetTime()
+    {
+        int t = (int)Time; ;
+
+        int sec = t % 60;
+        int min = t / 60;
+
+        return (min < 10 ? "0" + min : min.ToString()) + ":" + (sec < 10 ? "0" + sec : sec.ToString());
     }
 }
