@@ -24,10 +24,10 @@ public class Bat : MonoBehaviour
     private Slider RotationSlider;
     private Vector3 rotation_direction;
 
-    private const float MIN_FORCE  = 1200f;  // Сила броска
-    private const float MAX_FORCE  = 3000f;  // биты
+    private const float MIN_FORCE = 1200f;  // Сила броска
+    private const float MAX_FORCE = 3000f;  // биты
     private const float MIN_TORQUE = -1e3f;  // Вращательный
-    private const float MAX_TORQUE =  1e3f;  // момент биты
+    private const float MAX_TORQUE = 1e3f;  // момент биты
 
     private const string GAMES_HISTORY_FILE = "history.xml";
 
@@ -81,19 +81,14 @@ public class Bat : MonoBehaviour
         liders_canvas = GameObject.Find("Liders");
         Pause.liders_canvas = liders_canvas;
         liders_score_list = GameObject.Find("LidersScores").GetComponent<Text>();
+
         LoadHistory();
 
-        if (File.Exists(GAMES_HISTORY_FILE))
-        {
-            var list1 = from h in game_history
-                        orderby h.Throws
-                        orderby h.Time
-                        select h;
-
-            game_history = list1.ToList();
-
+        if (game_history != null || (game_history != null && game_history.Count == 0))
             GameResult.Print(game_history, liders_score_list);
-        }
+        else
+            liders_score_list.text = "Игр еще нет!";
+
         liders_canvas.SetActive(false);
 
         game_number = 1;
@@ -152,16 +147,16 @@ public class Bat : MonoBehaviour
             RotationSlider.enabled = true;
         }
 
-        if(Pause.pause_mode == PauseMode.Game)
+        if (Pause.pause_mode == PauseMode.Game)
         {
-            if(Input.GetKeyDown(KeyCode.Escape) && !is_bat_moving)
+            if (Input.GetKeyDown(KeyCode.Escape) && !is_bat_moving)
             {
                 pause_canvas.SetActive(true);
                 Pause.is_paused = true;
                 Pause.pause_mode = PauseMode.Pause;
             }
 
-            if(Input.GetKeyDown(KeyCode.H) && !is_bat_moving)
+            if (Input.GetKeyDown(KeyCode.H) && !is_bat_moving)
             {
                 score_canvas.SetActive(true);
                 Pause.is_paused = true;
@@ -208,7 +203,7 @@ public class Bat : MonoBehaviour
                     main_camera.transform.position = camera_start_pos;
                 }
 
-                if(count_removed == 5) 
+                if (count_removed == 5)
                 {
                     ScoreHistory();
 
@@ -227,7 +222,7 @@ public class Bat : MonoBehaviour
 
                     main_camera.transform.position = camera_start_pos;
 
-                    foreach(GameObject fig in figures)
+                    foreach (GameObject fig in figures)
                     {
                         if (fig.name == "Figure" + (game_number - 1).ToString())
                             fig.SetActive(false);
@@ -240,7 +235,7 @@ public class Bat : MonoBehaviour
                 }
 
                 count_left = 5 - count_removed;
-                if(game_number <= figures.Length)
+                if (game_number <= figures.Length)
                     game_text.text = "Игра №" + game_number;
                 count_removed_text.text = "Выбито: " + count_removed;
                 count_left_text.text = "Осталось: " + count_left;
@@ -286,7 +281,7 @@ public class Bat : MonoBehaviour
 
         #region Features
 
-        if(Input.GetKeyDown(KeyCode.S))
+        if (Input.GetKeyDown(KeyCode.S))
         {
             //SaveHistory();
             //Debug.Log("Saved");
@@ -304,9 +299,9 @@ public class Bat : MonoBehaviour
         int count = 0;
 
         // 3. Обходим циклом и выводим
-        foreach(GameObject bar in bars)
+        foreach (GameObject bar in bars)
         {
-            if(gorod.bounds.Contains(bar.transform.TransformPoint(Vector3.zero)))
+            if (gorod.bounds.Contains(bar.transform.TransformPoint(Vector3.zero)))
             {
                 // Брусок не вышел за пределы "города"
                 Rigidbody rb = bar.GetComponent<Rigidbody>();
@@ -327,9 +322,9 @@ public class Bat : MonoBehaviour
     // Загрузка файла с результатами
     private void LoadHistory()
     {
-        if(File.Exists(GAMES_HISTORY_FILE))
+        if (File.Exists(GAMES_HISTORY_FILE))
         {
-            using(StreamReader reader = new StreamReader(GAMES_HISTORY_FILE))
+            using (StreamReader reader = new StreamReader(GAMES_HISTORY_FILE))
             {
                 XmlSerializer serializer = new XmlSerializer(typeof(List<GameResult>));
                 game_history = (List<GameResult>)serializer.Deserialize(reader);
@@ -341,14 +336,14 @@ public class Bat : MonoBehaviour
     // Сохранение всей мгры в файл с результатами
     private void SaveHistory()
     {
-        if(game_history == null)
+        if (game_history == null)
             game_history = new List<GameResult>();
 
-        float time = 1f;
+        int time = 0;
 
         foreach (ScoreResult res in score_results)
         {
-            time += res.Time;
+            time += (int)res.Time;
         }
 
         game_history.Add(new GameResult
@@ -358,9 +353,14 @@ public class Bat : MonoBehaviour
             Time = time
         });
 
+        var list = (from h in game_history
+                    orderby h.Time
+                    orderby h.Throws
+                    select h).Take(10);
 
+        game_history = list.ToList();
 
-        using(StreamWriter writer = new StreamWriter(GAMES_HISTORY_FILE))
+        using (StreamWriter writer = new StreamWriter(GAMES_HISTORY_FILE))
         {
             XmlSerializer serializer = new XmlSerializer(game_history.GetType());
             serializer.Serialize(writer, game_history);
@@ -388,7 +388,7 @@ public class GameResult
 
     public int Throws { get; set; }    // совершенно бросков за всю игру
 
-    public float Time { get; set; }    // затраченно времени
+    public int Time { get; set; }    // затраченно времени
 
     public static void Print(List<GameResult> list, Text score_list)
     {
@@ -404,8 +404,8 @@ public class GameResult
     }
 }
 
-// Очки по каждой фигуре
-public class ScoreResult
+    // Очки по каждой фигуре
+    public class ScoreResult
 {
     public int Game { get; set; }    // номер игры
 
@@ -422,11 +422,11 @@ public class ScoreResult
         foreach (ScoreResult res in list)
         {
             score_list.text += (num < 10 ? "  " + num : num.ToString()) +
-                ".                    " + res.Throws + "                    " + GetTime(res.Time) + "\n\n";
+                ".                    " + res.Throws + "                    " + ScoreResult.GetTime(res.Time) + "\n\n";
             num++;
         }
 
-        for(int i = num; i <= 15; i++)
+        for (int i = num; i <= 15; i++)
         {
             score_list.text += (i < 10 ? "  " + i : i.ToString()) +
                 ".                    -                    - \n\n";
