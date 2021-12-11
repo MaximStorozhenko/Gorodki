@@ -6,7 +6,10 @@ using UnityEngine.SceneManagement;
 public class Pause : MonoBehaviour
 {
     public static bool is_paused;
+    public static bool is_playing;
     public static PauseMode pause_mode;
+
+    public static GameObject liders_canvas { get; set; }
 
     public void MenuButtonClick()
     {
@@ -15,17 +18,21 @@ public class Pause : MonoBehaviour
 
     public void ScoreButtonClick()
     {
-
+        this.gameObject.SetActive(false);
+        liders_canvas.SetActive(true);
     }
 
     private void Return()
     {
         is_paused = false;
 
-        if(pause_mode == PauseMode.Pause)
+        if (pause_mode == PauseMode.Pause)
+        {
             this.gameObject.SetActive(false);
+            liders_canvas.SetActive(false);
+        }
 
-        if(pause_mode == PauseMode.ScorePause)
+        if (pause_mode == PauseMode.ScorePause)
             GameObject.Find("Score").SetActive(false);
 
         pause_mode = PauseMode.Game;

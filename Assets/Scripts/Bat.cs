@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Xml.Serialization;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Linq;
 
 public class Bat : MonoBehaviour
 {
@@ -58,12 +60,13 @@ public class Bat : MonoBehaviour
 
     private GameObject pause_canvas;
     private GameObject score_canvas;
+    private GameObject liders_canvas;
+    private Text liders_score_list;
 
     private Text score_list;
 
     void Start()
     {
-        LoadHistory();
         score_results = new List<ScoreResult>();
         score_list = GameObject.Find("Scores").GetComponent<Text>();
 
@@ -74,6 +77,24 @@ public class Bat : MonoBehaviour
 
         score_canvas = GameObject.Find("Score");
         score_canvas.SetActive(false);
+
+        liders_canvas = GameObject.Find("Liders");
+        Pause.liders_canvas = liders_canvas;
+        liders_score_list = GameObject.Find("LidersScores").GetComponent<Text>();
+        LoadHistory();
+
+        if (File.Exists(GAMES_HISTORY_FILE))
+        {
+            var list1 = from h in game_history
+                        orderby h.Throws
+                        orderby h.Time
+                        select h;
+
+            game_history = list1.ToList();
+
+            GameResult.Print(game_history, liders_score_list);
+        }
+        liders_canvas.SetActive(false);
 
         game_number = 1;
         count_removed = 0;
@@ -237,7 +258,12 @@ public class Bat : MonoBehaviour
             Debug.Log("GameOver");
             score_canvas.SetActive(true);
             Pause.is_paused = true;
+            Pause.is_playing = false;
             Pause.pause_mode = PauseMode.ScorePause;
+
+            LoadHistory();
+
+            SaveHistory();
         }
 
         #endregion
@@ -262,8 +288,8 @@ public class Bat : MonoBehaviour
 
         if(Input.GetKeyDown(KeyCode.S))
         {
-            SaveHistory();
-            Debug.Log("Saved");
+            //SaveHistory();
+            //Debug.Log("Saved");
         }
 
         #endregion
@@ -298,6 +324,7 @@ public class Bat : MonoBehaviour
         count_removed += count;
     }
 
+    // Загрузка файла с результатами
     private void LoadHistory()
     {
         if(File.Exists(GAMES_HISTORY_FILE))
@@ -311,19 +338,27 @@ public class Bat : MonoBehaviour
         }
     }
 
+    // Сохранение всей мгры в файл с результатами
     private void SaveHistory()
     {
         if(game_history == null)
-        {
             game_history = new List<GameResult>();
+
+        float time = 1f;
+
+        foreach (ScoreResult res in score_results)
+        {
+            time += res.Time;
         }
 
         game_history.Add(new GameResult
         {
             WinGames = game_number - 1,
             Throws = throws,
-            Time = 0
+            Time = time
         });
+
+
 
         using(StreamWriter writer = new StreamWriter(GAMES_HISTORY_FILE))
         {
@@ -343,6 +378,8 @@ public class Bat : MonoBehaviour
     }
 }
 
+// Общая игра из 15-ти фигур
+[Serializable]
 public class GameResult
 {
     public string Name { get; set; }   // Имя играющего
@@ -352,26 +389,40 @@ public class GameResult
     public int Throws { get; set; }    // совершенно бросков за всю игру
 
     public float Time { get; set; }    // затраченно времени
+
+    public static void Print(List<GameResult> list, Text score_list)
+    {
+        score_list.text = "";
+        int num = 1;
+
+        foreach(GameResult res in list)
+        {
+            score_list.text += (num < 10 ? "  " + num : num.ToString()) + ".   " + res.Name +
+                "       " + res.WinGames + "       " + res.Throws + "       " + ScoreResult.GetTime(res.Time) + "\n\n";
+            num++;
+        }
+    }
 }
 
+// Очки по каждой фигуре
 public class ScoreResult
 {
     public int Game { get; set; }    // номер игры
 
-    public int Throws { get; set; }  // совершенно бросков
+    public int Throws { get; set; }  // совершенно бросков на фигуру
 
     public float Time { get; set; }  // затраченно времени
 
+    // Вывод результатов на экран при нажатии на кнопку "H"
     public static void Print(List<ScoreResult> list, Text score_list)
     {
-        //score_list.text = "Text";
         score_list.text = "";
         int num = 1;
 
         foreach (ScoreResult res in list)
         {
             score_list.text += (num < 10 ? "  " + num : num.ToString()) +
-                ".                    " + res.Throws + "                    " + res.GetTime() + "\n\n";
+                ".                    " + res.Throws + "                    " + GetTime(res.Time) + "\n\n";
             num++;
         }
 
@@ -382,9 +433,9 @@ public class ScoreResult
         }
     }
 
-    private string GetTime()
+    public static string GetTime(float game_time)
     {
-        int t = (int)Time; ;
+        int t = (int)game_time;
 
         int sec = t % 60;
         int min = t / 60;

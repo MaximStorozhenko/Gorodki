@@ -2,7 +2,25 @@
 <ArrayOfGameResult xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <GameResult>
     <WinGames>2</WinGames>
-    <Throws>2</Throws>
-    <Time>0</Time>
+    <Throws>6</Throws>
+    <Time>39.8853531</Time>
   </GameResult>
+<GameResult>
+    <WinGames>2</WinGames>
+    <Throws>6</Throws>
+    <Time>10.8853531</Time>
+  </GameResult>
+
+<GameResult>
+    <WinGames>2</WinGames>
+    <Throws>15</Throws>
+    <Time>65.8853531</Time>
+  </GameResult>
+
+<GameResult>
+    <WinGames>2</WinGames>
+    <Throws>3</Throws>
+    <Time>75.8853531</Time>
+  </GameResult>
+
 </ArrayOfGameResult>

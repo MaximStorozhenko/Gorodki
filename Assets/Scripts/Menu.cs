@@ -2,17 +2,21 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class Menu : MonoBehaviour
 {
     private GameObject ReturnButton;
     private GameObject View;
 
+    private Text startButtonText;
+
     public void StartButtonClick()
     {
         SceneManager.LoadScene("SampleScene");
         Pause.is_paused = false;
         Pause.pause_mode = PauseMode.Game;
+        Pause.is_playing = true;
     }
 
     public void RulesButtonClick()
@@ -37,15 +41,21 @@ public class Menu : MonoBehaviour
         View = GameObject.Find("Scroll View");
         ReturnButton = GameObject.Find("ReturnButton");
 
+        startButtonText = GameObject.Find("StartButtonText").GetComponent<Text>();
+
         View.SetActive(false);
         ReturnButton.SetActive(false);
 
         Pause.is_paused = true;
+
+        if (Pause.is_playing == true)
+            startButtonText.text = "Продолжить";
+        else
+            startButtonText.text = "Играть";
     }
 
-    // Update is called once per frame
     void Update()
     {
-        
+        Debug.Log("is_playing" + Pause.is_playing.ToString());
     }
 }
